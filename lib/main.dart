@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:insta_image_viewer/insta_image_viewer.dart';
+import 'package:easy_image_viewer/easy_image_viewer.dart';
+
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -36,11 +38,12 @@ Future<List<dynamic>?> getTaskEdit(String taskID) async {
   final url = Uri.parse('http://100.111.51.59/getTaskEdit.php');
   final response = await http.post(url, body: {'taskID': taskID});
 
-  if (response.statusCode == 200) {final data = jsonDecode(response.body);
-  return [
-    data['taskDetails'] ?? {}, // Task data at index 0
-    data['completionDetails'] ?? {}, // Completion data at index 1
-  ];
+  if (response.statusCode == 200) {
+    final data = jsonDecode(response.body);
+    return [
+      data['taskDetails'] ?? {}, // Task data at index 0
+      data['completionDetails'] ?? {}, // Completion data at index 1
+    ];
   } else {
     throw Exception('Failed to load task details');
   }
@@ -111,8 +114,9 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Checklist App',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green,),
-
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.green,
+        ),
         useMaterial3: true,
       ),
       home: const MyHomePage(title: 'Check list'),
@@ -153,7 +157,8 @@ class _MyHomePageState extends State<MyHomePage> {
         actions: [
           ElevatedButton(
             onPressed: () {
-              Navigator.push(context,
+              Navigator.push(
+                context,
                 MaterialPageRoute(builder: (context) => const EditTaskScreen()),
               );
             },
@@ -252,8 +257,9 @@ class _MyHomePageState extends State<MyHomePage> {
                                     context,
                                     MaterialPageRoute(
                                       builder: (context) => SecondRoute(
-                                          data: completeTasks[i]['id'] ?? 'No Title',
-                                          taskName: completeTasks[i]['name'],
+                                        data: completeTasks[i]['id'] ??
+                                            'No Title',
+                                        taskName: completeTasks[i]['name'],
                                       ),
                                     ),
                                   );
@@ -290,7 +296,7 @@ class SecondRoute extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(taskName),
+        title: Text("Edit task: $taskName"),
       ),
       body: FutureBuilder<List?>(
         future: getTaskEdit(data),
@@ -348,44 +354,59 @@ class SecondRoute extends StatelessWidget {
                     ),
                     // Display photos if available
 
-                    if (completionData['photo1Path'] != "")
-                      SizedBox(
-                        width: 100,
-                        height: 140,
-                        child: InstaImageViewer(
-                          child: Image(
-                            image: Image.network('http://100.111.51.59${completionData['photo1Path']}').image,
-                          ),
+                    for (int i = 0; i < taskData['photoCount']; i++)
+                      if (completionData['photo${i + 1}Path'] != "")
+                        SizedBox(
+                          width: 250,
+                          height: 250,
+                          child: Card(
+                              color: Colors.amber,
+                              child: Column(
+                                children: [
+                                  ListTile(
+                                    title: Text(taskData["photo${i + 1}Name"]),
+                                  ),
+                                  const Divider(
+                                    height: 0,
+                                  ),
+                                  GestureDetector(
+                                    onTap: () => showImageViewer(
+                                      context,
+                                      Image.network('http://100.111.51.59${completionData['photo${i + 1}Path']}').image,
+                                      useSafeArea: true,
+                                      swipeDismissible: true,
+                                      doubleTapZoomable: true,
+                                    ),
+                                    child: Container(
+                                      width: 150,
+                                      height: 150,
+                                      decoration: BoxDecoration(
+                                        border: Border.all(color: Colors.grey),
+                                        borderRadius: BorderRadius.circular(8.0),
+                                        image: completionData['photo${i + 1}Path'] != null
+                                            ? DecorationImage(
+                                          image: Image.network(
+                                              'http://100.111.51.59${completionData['photo${i + 1}Path']}').image,
+                                          fit: BoxFit.cover,
+                                        )
+                                            : null,
+                                      ),
+                                      child: completionData['photo${i + 1}Path'] == null
+                                          ? const Icon(Icons.camera)
+                                          : const Text('Retake Photo'),
+                                    ),
+                                  ),
+                                  InstaImageViewer(
+                                    child: Image(
+                                      image: Image.network(
+                                              'http://100.111.51.59${completionData['photo${i + 1}Path']}')
+                                          .image,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                ],
+                              )),
                         ),
-                      ),
-                    if (completionData['photo2Path'] != "")
-                      SizedBox(
-                        width: 100,
-                        height: 140,
-                        child: InstaImageViewer(
-                          child: Image(
-                            image: Image.network('http://100.111.51.59${completionData['photo2Path']}').image,
-                          ),
-                        ),
-                      ),if (completionData['photo3Path'] != "")
-                      SizedBox(
-                        width: 100,
-                        height: 140,
-                        child: InstaImageViewer(
-                          child: Image(
-                            image: Image.network('http://100.111.51.59${completionData['photo3Path']}').image,
-                          ),
-                        ),
-                      ),if (completionData['photo4Path'] != "")
-                      SizedBox(
-                        width: 100,
-                        height: 140,
-                        child: InstaImageViewer(
-                          child: Image(
-                            image: Image.network('http://100.111.51.59${completionData['photo4Path']}').image,
-                          ),
-                        ),
-                      ),
                   ] else ...[
                     const Padding(
                       padding: EdgeInsets.all(16.0),
@@ -401,7 +422,6 @@ class SecondRoute extends StatelessWidget {
     );
   }
 }
-
 
 class EditTaskScreen extends StatefulWidget {
   const EditTaskScreen({super.key});
@@ -469,9 +489,9 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
                       borderRadius: BorderRadius.circular(8.0),
                       image: backFridgeImagePath != null
                           ? DecorationImage(
-                        image: FileImage(File(backFridgeImagePath!)),
-                        fit: BoxFit.cover,
-                      )
+                              image: FileImage(File(backFridgeImagePath!)),
+                              fit: BoxFit.cover,
+                            )
                           : null,
                     ),
                     child: backFridgeImagePath == null
@@ -489,9 +509,9 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
                       borderRadius: BorderRadius.circular(8.0),
                       image: milkFridgeImagePath != null
                           ? DecorationImage(
-                        image: FileImage(File(milkFridgeImagePath!)),
-                        fit: BoxFit.cover,
-                      )
+                              image: FileImage(File(milkFridgeImagePath!)),
+                              fit: BoxFit.cover,
+                            )
                           : null,
                     ),
                     child: milkFridgeImagePath == null
